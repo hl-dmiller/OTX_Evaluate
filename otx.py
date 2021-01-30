@@ -3,8 +3,9 @@ from datetime import datetime
 
 
 def pull_new_otx_iocs():
+    api_key = 0 #pull from api.yml
     url="https://otx.alienvault.com:443/api/v1/pulses/subscribed"
-    headers={'X-OTX-API-KEY': "f3805c37fb6aeb0e8e2811ca3ccd3f9b117c0a8e83d2b22c326111b7bcb0e320"}
+    headers={'X-OTX-API-KEY': api_key}
     req = urllib.request.Request(url, headers=headers)
 
     with urllib.request.urlopen(req) as data:
@@ -14,7 +15,19 @@ def pull_new_otx_iocs():
             json.dump(otx_pull, outfile)
 
 
-def format_data(parameters):
+def format_data(otx_entry):
+    ioc_count = 0
+    ioc_types=set()
+    for indicator in otx_entry['indicators']:
+        ioc_count += 1
+        ioc_types.add(indicator['type'])
+    parameters = [
+        otx_entry['name'],
+        otx_entry['created'],
+        otx_entry['modified'],
+        ioc_types,
+        ioc_count
+    ]
     template = """Pulse Name: {0}
     Created on: {1}
     Modified on: {2}
@@ -26,6 +39,7 @@ def format_data(parameters):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--pull", help="Pull new OTX IOCs", action="store_true")
+    parser.add_argument("-o", "--out", help="Print to file (provide file name)")
     args = parser.parse_args()
 
     if args.pull:
@@ -33,25 +47,22 @@ if __name__ == "__main__":
 
     otx_files = set()
 
-    for file in os.listdir("./"):
-        f = file.split("-")
-        if f[0] == "otx":
-            otx_files.add(file)
+    for file in os.listdir("otx_files/"):
+        otx_files.add(file)
+
+    otx_dict = dict()
 
     for otx_file in otx_files:
-        with open(otx_file) as otx_data:
+        file_name = "otx_files/" + otx_file
+        with open(file_name) as otx_data:
             otx_json = json.load(otx_data)
         for result in otx_json['results']:
-            ioc_count = 0
-            ioc_types=set()
-            for indicator in result['indicators']:
-                ioc_count += 1
-                ioc_types.add(indicator['type'])
-            parameters = (
-                result['name'],
-                result['created'],
-                result['modified'],
-                ioc_types,
-                ioc_count
-            )
-            print(format_data(parameters))
+            key = result['id']
+            otx_dict[key] = result
+
+    for otx_entry in otx_dict.values():
+        if args.out:
+            with open(args.out, 'a') as write_file:
+                write_file.write(format_data(otx_entry))
+        else:
+            print(format_data(otx_entry))
