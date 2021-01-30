@@ -1,5 +1,6 @@
 import argparse, json, urllib.request, os, yaml
 from datetime import datetime
+from collections import OrderedDict 
 
 
 def pull_new_otx_iocs():
@@ -55,6 +56,28 @@ def evaluate_top_10k(indicators):
     return top_10k_iocs
 
 
+def parse_files(otx_files):
+    for otx_file in otx_files:
+        file_name = "otx_files/" + otx_file
+        with open(file_name) as otx_data:
+            otx_json = json.load(otx_data)
+        for result in otx_json['results']:
+            key = result['id']
+            otx_dict[key] = result
+
+
+def return_evaluated_files(evaluated_values):
+    sorted_values=OrderedDict()
+    for i in sorted(evaluated_values.keys()):
+        sorted_values[i] = evaluated_values[i]
+    for otx_entry in sorted_values.values():
+        if args.out:
+            with open(args.out, 'a') as evaled_file:
+                evaled_file.write(format_data(otx_entry))
+        else:
+            print(format_data(otx_entry))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--pull", help="Pull new OTX IOCs", action="store_true")
@@ -71,17 +94,6 @@ if __name__ == "__main__":
 
     otx_dict = dict()
 
-    for otx_file in otx_files:
-        file_name = "otx_files/" + otx_file
-        with open(file_name) as otx_data:
-            otx_json = json.load(otx_data)
-        for result in otx_json['results']:
-            key = result['id']
-            otx_dict[key] = result
+    parse_files(otx_files)
 
-    for otx_entry in otx_dict.values():
-        if args.out:
-            with open(args.out, 'a') as evaled_file:
-                evaled_file.write(format_data(otx_entry))
-        else:
-            print(format_data(otx_entry))
+    return_evaluated_files(otx_dict)
