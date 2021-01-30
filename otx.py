@@ -11,30 +11,48 @@ def pull_new_otx_iocs():
 
     with urllib.request.urlopen(req) as data:
         otx_pull = json.loads(data.read().decode())
-        file_name = "otx_files/otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
-        with open(file_name, 'w') as outfile:
-            json.dump(otx_pull, outfile)
+        otx_pull_file_name = "otx_files/otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
+        with open(otx_pull_file_name, 'w') as otx_pull_file:
+            json.dump(otx_pull, otx_pull_file)
 
 
 def format_data(otx_entry):
     ioc_count = 0
     ioc_types=set()
+    indicators=set()
     for indicator in otx_entry['indicators']:
         ioc_count += 1
         ioc_types.add(indicator['type'])
+        if indicator['type'] == "domain":
+            indicators.add(indicator['indicator'])
+    top_10k_count = evaluate_top_10k(indicators)
     parameters = [
         otx_entry['name'],
         otx_entry['created'],
         otx_entry['modified'],
         ioc_types,
-        ioc_count
+        ioc_count,
+        top_10k_count
     ]
     template = """Pulse Name: {0}
     Created on: {1}
     Modified on: {2}
     IOC Types: {3}
-    {4} IOCs\n"""
+    IOCs: {4}
+    Domains in top10k: {5}\n"""
     return template.format(*parameters)
+
+
+def evaluate_top_10k(indicators):
+    with open("opendns-top-domains.txt") as top10k_file:
+        top_10k_list = top10k_file.readlines()
+    top_10k_list = [x.strip('\n') for x in top_10k_list]
+    top_10k_iocs = 0
+    for indicator in indicators:
+        for ioc in top_10k_list:
+            if indicator == ioc:
+                top_10k_iocs += 1
+    return top_10k_iocs
 
 
 if __name__ == "__main__":
@@ -63,7 +81,7 @@ if __name__ == "__main__":
 
     for otx_entry in otx_dict.values():
         if args.out:
-            with open(args.out, 'a') as write_file:
-                write_file.write(format_data(otx_entry))
+            with open(args.out, 'a') as evaled_file:
+                evaled_file.write(format_data(otx_entry))
         else:
             print(format_data(otx_entry))
