@@ -1,16 +1,17 @@
-import argparse, json, urllib.request, os
+import argparse, json, urllib.request, os, yaml
 from datetime import datetime
 
 
 def pull_new_otx_iocs():
-    api_key = 0 #pull from api.yml
+    with open("api.yml") as api_file:
+        api_keys = yaml.load(api_file, Loader=yaml.FullLoader)
     url="https://otx.alienvault.com:443/api/v1/pulses/subscribed"
-    headers={'X-OTX-API-KEY': api_key}
+    headers={'X-OTX-API-KEY': api_keys['otx']}
     req = urllib.request.Request(url, headers=headers)
 
     with urllib.request.urlopen(req) as data:
         otx_pull = json.loads(data.read().decode())
-        file_name = "otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
+        file_name = "otx_files/otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
         with open(file_name, 'w') as outfile:
             json.dump(otx_pull, outfile)
 
