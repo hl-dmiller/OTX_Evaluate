@@ -1,6 +1,5 @@
-import argparse, json, urllib.request, os, yaml
+import argparse, json, urllib.request, yaml
 from datetime import datetime,timedelta
-from collections import OrderedDict 
 
 
 def pull_new_otx_iocs():
@@ -14,7 +13,8 @@ def pull_new_otx_iocs():
         otx_pull = json.loads(data.read().decode())
         otx_pull_file_name = "otx_files/otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
         write_file(otx_pull_file_name, otx_pull)
-
+    
+    return otx_pull
 
 
 def get_file(test_file_name):
@@ -54,17 +54,13 @@ def compare_date(ioc_date):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("out_file", help="Print to file (provide file name)")
-    parser.add_argument("-p", "--pull", help="Pull new OTX IOCs", action="store_true")
-    parser.add_argument("-t", "--test_file", help="Run against test file")
+    parser.add_argument("-t", "--test_file", help="Run against test file - this will prevent pull of new IOCs")
     args = parser.parse_args()
-
-    if args.pull:
-        pull_new_otx_iocs()
-
-    new_otx_json = dict()
 
     if args.test_file:
         otx_test_file = get_file(args.test_file)
         new_otx_json = parse_data(otx_test_file)
+    else:
+        new_otx_json = parse_data(pull_new_otx_iocs())
 
     write_file(args.out_file, new_otx_json)
