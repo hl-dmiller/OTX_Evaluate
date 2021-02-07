@@ -13,8 +13,7 @@ def pull_new_otx_iocs():
     with urllib.request.urlopen(req) as data:
         otx_pull = json.loads(data.read().decode())
         otx_pull_file_name = "otx_files/otx-" + datetime.now().strftime("%d-%m-%Y-%H-%M-%S") + ".json"
-        with open(otx_pull_file_name, 'w') as otx_pull_file:
-            json.dump(otx_pull, otx_pull_file)
+        write_file(otx_pull_file_name, otx_pull)
 
 
 
@@ -30,10 +29,19 @@ def write_file(out_file_name, out_file_json):
 
 
 def parse_data(otx_entry):
-    for result in otx_entry['results']:
-        for indicator in result['indicators']:
+    iocs_removed = 0
+    results = otx_entry['results']
+    for result in results[:]:
+        indicators = result['indicators']
+        print("{} has {} indicators".format(result['id'],len(indicators)))
+        for indicator in indicators[:]:
             if compare_date(indicator['created']) > timedelta(days=7):
                 result['indicators'].remove(indicator)
+                iocs_removed += 1
+        if not result['indicators']:
+            otx_entry['results'].remove(result)
+            print("Removed {} from OTX pull".format(result['name']))
+    print("Removed {} IOCs from OTX pull.".format(iocs_removed))
     return otx_entry
 
 
