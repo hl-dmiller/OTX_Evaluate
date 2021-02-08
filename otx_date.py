@@ -1,27 +1,30 @@
-import argparse, json, logging, urllib.request, yaml
-from datetime import datetime,timedelta
+import argparse
+import json
+import logging
+import urllib.request
+import yaml
+from datetime import datetime, timedelta
 
 
 def pull_new_otx_iocs():
     """Returns data from OTX API."""
-
     with open('api.yml') as api_file:
         api_keys = yaml.load(api_file, Loader=yaml.FullLoader)
-    url='https://otx.alienvault.com:443/api/v1/pulses/subscribed'
-    headers={'X-OTX-API-KEY': api_keys['otx']}
+    url = 'https://otx.alienvault.com:443/api/v1/pulses/subscribed'
+    headers = {'X-OTX-API-KEY': api_keys['otx']}
     req = urllib.request.Request(url, headers=headers)
 
     with urllib.request.urlopen(req) as data:
         otx_pull = json.loads(data.read().decode())
-        otx_pull_file_name = 'otx_files/otx-' + datetime.now().strftime('%d-%m-%Y-%H-%M-%S') + '.json'
+        date_format = datetime.now().strftime('%d-%m-%Y-%H-%M-%S')
+        otx_pull_file_name = 'otx_files/otx-' + date_format + '.json'
         write_file(otx_pull_file_name, otx_pull)
-    
+
     return otx_pull
 
 
 def get_file(test_file_name):
     """Opens test_file_name as json and returns it."""
-
     with open(test_file_name) as otx_data:
         otx_json = json.load(otx_data)
     return otx_json
@@ -36,7 +39,6 @@ def write_file(out_file_name, out_file_json):
 
 def parse_data(otx_entry):
     """Returns parsed OTX Pulse data."""
-
     results = otx_entry['results']
     for result in results[:]:
         indicators = result['indicators']
@@ -47,20 +49,22 @@ def parse_data(otx_entry):
                 result['indicators'].remove(indicator)
                 iocs_removed += 1
             else:
-                iocs_added +=1
+                iocs_added += 1
         if iocs_removed > 0:
-            logging.info('OTX Pulse {} - "{}" - Removed {} IOCs'.format(result['id'],result['name'],iocs_removed))
+            logging.info('OTX Pulse {} - "{}" - Removed {} IOCs'
+                         .format(result['id'], result['name'], iocs_removed))
         else:
-            logging.info('OTX Pulse {} - "{}" - Added {} IOCs'.format(result['id'],result['name'],iocs_added))
+            logging.info('OTX Pulse {} - "{}" - Added {} IOCs'
+                         .format(result['id'], result['name'], iocs_added))
         if not result['indicators']:
             otx_entry['results'].remove(result)
-            logging.info('OTX Pulse {} - "{}" - Removed full Pulse'.format(result['id'],result['name']))
+            logging.info('OTX Pulse {} - "{}" - Removed full Pulse'
+                         .format(result['id'], result['name']))
     return otx_entry
 
 
 def compare_date(ioc_date):
     """Returns difference between ioc_date and now()."""
-
     current_date = datetime.now()
     ioc_date_compare = datetime.strptime(ioc_date, '%Y-%m-%dT%H:%M:%S')
     return current_date - ioc_date_compare
@@ -69,10 +73,12 @@ def compare_date(ioc_date):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('out_file', help='Print to file (provide file name)')
-    parser.add_argument('-t', '--test_file', help='Run against test file - this will prevent pull of new IOCs')
+    parser.add_argument('-t', '--test_file', help='Run against test file - \
+                        this will prevent pull of new IOCs')
     args = parser.parse_args()
 
-    logging.basicConfig(filename='otx.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(message)s')
+    logging.basicConfig(filename='otx.log', filemode='a',
+                        level=logging.INFO, format='%(asctime)s - %(message)s')
 
     if args.test_file:
         otx_test_file = get_file(args.test_file)
