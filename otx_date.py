@@ -3,6 +3,8 @@ from datetime import datetime,timedelta
 
 
 def pull_new_otx_iocs():
+    """Returns data from OTX API."""
+
     with open('api.yml') as api_file:
         api_keys = yaml.load(api_file, Loader=yaml.FullLoader)
     url='https://otx.alienvault.com:443/api/v1/pulses/subscribed'
@@ -18,17 +20,23 @@ def pull_new_otx_iocs():
 
 
 def get_file(test_file_name):
+    """Opens test_file_name as json and returns it."""
+
     with open(test_file_name) as otx_data:
         otx_json = json.load(otx_data)
     return otx_json
 
 
 def write_file(out_file_name, out_file_json):
+    """Writes out_file_json to out_file_name file."""
+
     with open(out_file_name, 'w') as write_file_name:
         json.dump(out_file_json, write_file_name)
 
 
 def parse_data(otx_entry):
+    """Returns parsed OTX Pulse data."""
+
     results = otx_entry['results']
     for result in results[:]:
         indicators = result['indicators']
@@ -51,6 +59,8 @@ def parse_data(otx_entry):
 
 
 def compare_date(ioc_date):
+    """Returns difference between ioc_date and now()."""
+
     current_date = datetime.now()
     ioc_date_compare = datetime.strptime(ioc_date, '%Y-%m-%dT%H:%M:%S')
     return current_date - ioc_date_compare
